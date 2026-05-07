@@ -1,64 +1,59 @@
-# MeatGrindersAssociation Contract Verification
+# MeatGrindersAssociation Verification
 
-**Byte-for-byte verified** runtime bytecode for the MeatGrindersAssociation (Unicorn Meat Grinder) contract deployed on Ethereum mainnet.
+Byte-for-byte bytecode verification for `0xc7e9dDd5358e08417b1C88ed6f1a73149BEeaa32`.
 
-## Contract
-
-- **Address**: [`0xc7e9ddd5358e08417b1c88ed6f1a73149beeaa32`](https://etherscan.io/address/0xc7e9ddd5358e08417b1c88ed6f1a73149beeaa32)
-- **Deployed**: March 24-25, 2016 (block 1,211,176)
-- **Deployer**: `0xd1220a0cf47c7b9be7a2e6ba89f429762e7b9adb` (avsa / Alex Van de Sande)
-- **Etherscan name**: "Unicorn Meat Grinder Association"
-- **Runtime bytecode**: 4,640 bytes
-
-## Compiler
-
-- **Version**: `soljson-v0.2.1+commit.91a6b35f.js` (emscripten/JS build)
-- **Optimizer**: ON
-- **Available at**: https://binaries.soliditylang.org/bin/soljson-v0.2.1+commit.91a6b35f.js
-
-## Key Finding
-
-The publicly known source code for this contract (published by avsa on GitHub gist) uses `contract MeatGrindersAssociation is owned`, inheriting from a separate `owned` base contract. However, the actual deployed bytecode was compiled **without inheritance** — `owner`, `onlyOwner`, and `transferOwnership` are all defined inline within `MeatGrindersAssociation` itself.
-
-Additional structural differences from the published source:
-- `transferOwnership` appears between `vote` and `executeProposal` (not at the top with other owner functions)
-- `receiveApproval` appears before `sqrt`
-- The constructor explicitly sets `owner = msg.sender` inline rather than via a base class
-
-This corrected source file (`MeatGrindersAssociation.sol`) produces an exact byte-for-byte runtime bytecode match.
+| Field | Value |
+|---|---|
+| Contract | [`0xc7e9dDd5358e08417b1C88ed6f1a73149BEeaa32`](https://etherscan.io/address/0xc7e9dDd5358e08417b1C88ed6f1a73149BEeaa32) |
+| Network | Ethereum Mainnet |
+| Block | 1,211,176 |
+| Deployed | 2016-03-24 22:55:56 UTC |
+| Deployer | [`0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb`](https://etherscan.io/address/0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb) |
+| Deploy tx | [`0xe9653360212cb38996a13def35272cb05b3e06f4344c1673514973c92367f054`](https://etherscan.io/tx/0xe9653360212cb38996a13def35272cb05b3e06f4344c1673514973c92367f054) |
+| Compiler | soljson v0.2.1+commit.91a6b35f |
+| Optimizer | ON |
+| Runtime match | ✅ EXACT (4640 bytes) |
+| Creation match | ✅ EXACT (5040 bytes deploy + 192 bytes constructor args) |
 
 ## Verification
 
 ```bash
-# Download soljson v0.2.1
-curl -O https://binaries.soliditylang.org/bin/soljson-v0.2.1+commit.91a6b35f.js
-
-# Run verification script
-chmod +x verify.sh
 ./verify.sh
 ```
 
-Or manually:
+The script downloads `soljson-v0.2.1+commit.91a6b35f.js`, installs the
+`solc@0.4.26` wrapper, recompiles `MeatGrindersAssociation.sol` with the
+optimizer ON, and compares the resulting runtime + creation bytecode against
+the on-chain copies in `onchain-runtime.hex` / `onchain-creation.hex`.
 
-```bash
-node -e "
-const solc = require('./soljson-v0.2.1+commit.91a6b35f.js');
-const fs = require('fs');
-const src = fs.readFileSync('MeatGrindersAssociation.sol', 'utf8');
-const output = solc.compile(src, 1);
-console.log(output.contracts['MeatGrindersAssociation'].runtimeBytecode);
-"
-```
+## Constructor arguments
 
-Compare the output against `onchain-runtime.hex`.
+| # | Name | Value |
+|---|---|---|
+| 0 | `unicornAddress` | `0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7` (Unicorn token) |
+| 1 | `meatAddress` | `0xed6ac8de7c7ca7e3a22952e09c2a2a1232ddef9a` (Unicorn Meat token) |
+| 2 | `minimumUnicornsToPassAVote` | `1` |
+| 3 | `minutesForDebate` | `0` |
+| 4 | `multiplierForVotesAgainst` | `4` |
+| 5 | `meatCalculator` | `0x4ab274fc3a81b300a0016b3805d9b94c81fa54d2` (MeatConversionCalculator) |
 
-## Historical Context
+## What this contract does
 
-The Unicorn Meat Grinder Association was deployed in March 2016 by Alex Van de Sande, a core Ethereum Foundation developer. It governed the transformation ("grinding") of the original Ethereum Foundation Unicorn tokens into a new Unicorn Meat token. The contract used quadratic voting weighted by token ownership and bribe amounts. It was part of the Ethereum April Fool's Day 2016 announcement.
+`MeatGrindersAssociation` is a small token-weighted DAO from a 2016 Ethereum
+demo by Alex Van de Sande. Holders of the Unicorn token (the "shareholders")
+can submit proposals, vote on them with weight = balance × `sqrt(msg.value +
+msg.gas * tx.gasprice)` (a quadratic-bribe weighting), and execute approved
+proposals by forwarding ether + arbitrary calldata to the proposal's
+recipient.
 
-## Links
+It also exposes a `grindUnicorns(amount)` flow that pulls Unicorn tokens from
+the caller and mints Unicorn Meat tokens in proportion to the amount, using
+an external `MeatCalculator` contract to compute the conversion (with a small
+on-chain "reliability" lottery seeded by recent block hashes).
 
-- [EthereumHistory.com](https://www.ethereumhistory.com/contract/0xc7e9ddd5358e08417b1c88ed6f1a73149beeaa32)
-- [awesome-ethereum-proofs](https://github.com/cartoonitunes/awesome-ethereum-proofs)
-- [Sourcify](https://repo.sourcify.dev/contracts/full_match/1/0xc7e9ddd5358e08417b1c88ed6f1a73149beeaa32/)
-- [Original gist (with inheritance — does NOT match deployed bytecode)](https://gist.github.com/alexvandesande/3abc9f741471e08a6356)
+It's part of a four-contract demo set:
+
+- `0x89205a3a3b2a69de6dbf7f01ed13b2108b2c43e7` — Unicorn token
+- `0xED6aC8de7c7CA7e3A22952e09C2a2A1232DDef9A` — Unicorn Meat token (🍖)
+- `0x4AB274FC3A81B300A0016b3805d9b94C81FA54d2` — MeatConversionCalculator
+- `0xc7e9dDd5358e08417b1C88ed6f1a73149BEeaa32` — **MeatGrindersAssociation** (this one)

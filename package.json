@@ -1,0 +1,6 @@
+{
+  "name": "meatgrindersassociation-verification",
+  "description": "Verification proof for MeatGrindersAssociation - a DAO from Andreas Antonopoulos / Alexandre Van de Sande's 'Meat Grinder' demo (2016)",
+  "version": "1.0.0",
+  "license": "MIT"
+}
